@@ -5,6 +5,53 @@
 
 ---
 
+## [0.5.0] - 2026-07-01
+
+### ✨ 新增 (Added)
+- **测试套件** `tests/` — 33 个单元测试覆盖核心逻辑
+  - `test_indicators.py`: SMA / EMA / RSI 测试
+  - `test_risk.py`: 风控 6 个场景(正常/黑名单/超仓/熔断/平仓/回撤)
+  - `test_position_sizer.py`: 仓位计算 5 个场景
+  - `test_data_models.py`: 数据类解析测试
+  - `test_strategy.py`: DualMA 4 个场景(基类/名/涨/跌)
+  - pytest 8 / 9 兼容
+- **持久化层** `src/storage/db.py` — SQLite 单文件
+  - 5 张表:`klines` / `orders` / `signals` / `account_snapshots` / `trade_journal`
+  - 4 个 Repository:`KlinesRepository` / `SignalsRepository` / `OrdersRepository` / `TradesRepository`
+  - WAL 模式 + 索引优化
+- **策略工厂** `src/strategy/factory.py`
+  - `@register("name")` 装饰器注册
+  - `create(name, **params)` 通过名称实例化
+  - `available()` 列出所有注册策略
+  - 延迟 import 解决循环依赖
+- **多周期策略** `src/strategy/examples/multi_tf_trend.py` — `multi_tf_trend`
+  - 双 EMA 趋势策略(3m 主 + 5m 长)
+  - 框架共振 → 开仓,不一致 → 不开(过滤震荡)
+- **模拟盘引擎** `src/engine/paper_engine.py`
+  - 实时拉 K线 → 跑策略 → 风控 → 模拟成交 → 实时面板
+  - rich 实时 dashboard(仓位/价格/PnL)
+  - 所有交易持久化到 SQLite
+  - `--paper-equity` / `--paper-duration` 可配
+- **main.py 新命令**
+  - `--list-strategies`: 列出所有策略
+  - `--paper-equity 1000`: 模拟盘初始资金
+  - `--paper-duration 60`: 模拟盘持续分钟
+- **requirements.txt** 加 `pytest` + `pytest-asyncio`
+
+### 🐛 修复 (Fixed)
+- 修复 `dual_ma` 没注册到工厂(加了 `@register("dual_ma")` 装饰器)
+- 修复 `factory.py` 与 `dual_ma.py` 循环导入(用 `importlib` 延迟导入)
+- 修复 `paper_engine.py` 缺 `Signal` 导入
+
+### 📊 验证结果
+- pytest: **33 passed in 0.21s**
+- 持久化: 5 表全可用,K线/订单/信号/成交 CRUD 正常
+- 工厂: 2 个策略注册,`create/available` 工作
+- 多周期策略: 双框架共振正确生成 BUY 信号
+- DB 文件生成:`data/quant.db` (45 KB)
+
+---
+
 ## [0.4.0] - 2026-07-01
 
 ### ✨ 新增 (Added)

@@ -31,7 +31,10 @@ def parse_args():
   live      - 实盘(危险!)""",
     )
     p.add_argument("--symbol", default=None, help="交易对(默认从 config 读)")
-    p.add_argument("--strategy", default="dual_ma", help="策略名")
+    p.add_argument("--strategy", default="dual_ma",
+                   help="策略名(dual_ma, multi_tf_trend; 用 --list-strategies 查看)")
+    p.add_argument("--list-strategies", action="store_true",
+                   help="列出所有可用策略")
     p.add_argument("--days", type=int, default=90, help="回测天数")
     p.add_argument("--interval", default=None, help="K线周期(默认从 config 读)")
     p.add_argument("--profile", default=None, help="binance-cli profile 名")
@@ -41,6 +44,10 @@ def parse_args():
                    help="立即刷新交易对池(同 --refresh-pairs)")
     p.add_argument("--scheduler", action="store_true",
                    help="启动后台调度器(每天 00:00 UTC 自动更新)")
+    p.add_argument("--paper-duration", type=int, default=60,
+                   help="模拟盘持续分钟(默认 60)")
+    p.add_argument("--paper-equity", type=float, default=1000.0,
+                   help="模拟盘初始资金(默认 1000 USDT)")
     return p.parse_args()
 
 
@@ -50,7 +57,7 @@ async def run_demo(args):
 
 
 async def run_backtest(args):
-    from src.strategy.examples.dual_ma import DualMAStrategy
+    from src.strategy.factory import create as create_strategy
     from src.backtest.engine import BacktestEngine
     from src.config import CONFIG
 
@@ -59,7 +66,7 @@ async def run_backtest(args):
     print(f"\n📈 回测模式 - {symbol} {interval} {args.days} 天\n")
     print(f"策略: {args.strategy}")
 
-    strategy = DualMAStrategy()  # TODO: 策略工厂
+    strategy = create_strategy(args.strategy, quantity=0.001)
     engine = BacktestEngine(
         strategy=strategy, symbol=symbol, interval=interval,
         days=args.days, initial_equity=10000, leverage=CONFIG.trading.leverage,
@@ -69,26 +76,20 @@ async def run_backtest(args):
 
 
 async def run_paper(args):
+    from src.engine.paper_engine import PaperEngine
     from src.config import CONFIG
-    print("📝 模拟盘模式")
-    print("⚠️  模拟盘功能开发中 - 暂时只能演示行情流")
-    print("   完成后:策略在真实行情上跑,但所有 OrderRouter 调用 test_mode=True")
 
-    # 临时演示:订阅 K 线流 5 根就退出
-    from src.data.ws_kline import KlineStream
     symbol = args.symbol or CONFIG.trading.default_symbol
     interval = args.interval or "1m"
-    stream = KlineStream(symbol, interval)
-    count = 0
-    try:
-        async for k in stream.subscribe():
-            status = "✅" if getattr(k, "is_closed", False) else "🔄"
-            print(f"{status} {k.symbol} O={k.open} H={k.high} L={k.low} C={k.close}")
-            count += 1
-            if count >= 3:
-                break
-    except FileNotFoundError as e:
-        print(f"❌ {e}")
+    print(f"\n📝 模拟盘模式 - {args.strategy} on {symbol}")
+    print(f"   初始资金: ${args.paper_equity}")
+    print(f"   持续时间: {args.paper_duration} 分钟")
+
+    engine = PaperEngine(
+        strategy=args.strategy, symbol=symbol,
+        equity=args.paper_equity, leverage=CONFIG.trading.leverage,
+    )
+    await engine.run(duration_minutes=args.paper_duration)
 
 
 async def run_live(args):
@@ -144,12 +145,20 @@ async def load_or_refresh_pairs() -> list:
 async def main():
     args = parse_args()
 
+    # 列出策略
+    if args.list_strategies:
+        from src.strategy.factory import available
+        print("📋 可用策略:")
+        for name in available():
+            print(f"  - {name}")
+        return
+
     from src.config import CONFIG
     from src.logger import get_logger
     log = get_logger("main")
 
     print("=" * 60)
-    print(f"  量化合约交易系统 v0.3.0")
+    print(f"  量化合约交易系统 v0.5.0")
     print(f"  Mode:     {args.mode}")
     print(f"  Symbol:   {args.symbol or CONFIG.trading.default_symbol}")
     print(f"  Strategy: {args.strategy}")

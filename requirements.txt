@@ -1,5 +1,7 @@
 rich>=13.0.0
 python-dotenv>=1.0.0
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
 
 # 可选依赖(策略/分析需要时再装)
 # pandas>=2.0.0

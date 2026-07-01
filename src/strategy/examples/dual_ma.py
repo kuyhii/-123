@@ -14,8 +14,10 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 from src.data.models import Kline, Signal, Side
 from src.strategy.base import Strategy
+from src.strategy.factory import register
 
 
+@register("dual_ma")
 class DualMAStrategy(Strategy):
     """双均线策略"""
 
