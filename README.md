@@ -1,9 +1,26 @@
 # 量化合约交易系统 (Quantitative Futures Trading System)
 
-基于 **Binance USDT 永续合约 (USDS-M Futures)** 的模块化量化交易系统。
+> 基于 **Binance USDT 永续合约 (USDS-M Futures)** 的模块化量化交易系统。
+> 
+> **当前版本:v0.2.0** | 6 层架构 (L0-L5) | 24 个核心文件 | 2 个 Python 依赖
 
-集成官方 [binance-skills-hub](https://github.com/binance/binance-skills-hub) 的 `binance-cli` 工具,
-Python 端封装每个能力为独立模块,支持本地运行、回测、模拟盘、实盘。
+---
+
+## 📊 项目状态
+
+| 模块 | 状态 | 入口 |
+|---|---|---|
+| L0 Adapter (binance-cli 封装) | ✅ | `src/adapter/binance_cli.py` |
+| L1 Data (REST + WebSocket) | ✅ | `src/data/market_data.py` |
+| L2 Account (余额/持仓) | ✅ | `src/account/account.py` |
+| L3 Executor (下单/撤单) | ✅ | `src/executor/order_router.py` |
+| L4 Risk (风控/熔断) | ✅ | `src/risk/risk_manager.py` |
+| L5 Strategy (信号) | ✅ | `src/strategy/` |
+| 回测引擎 | ✅ | `src/backtest/engine.py` |
+| 模拟盘 | 🔄 基础完成 | `python src/main.py --mode paper` |
+| 实盘 | ⚠️ 需 CONFIRM | `python src/main.py --mode live` |
+
+**最近验证**:17/17 ad-hoc tests passed (py_compile + import + 业务逻辑)
 
 ---
 
