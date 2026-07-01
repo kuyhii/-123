@@ -5,6 +5,52 @@
 
 ---
 
+## [0.7.0] - 2026-07-01
+
+### ✨ 新增 (Added)
+- **增强技术指标** `src/data/indicators.py`
+  - MACD(金叉/死叉检测)
+  - Bollinger Bands(%B 位置 + bandwidth 收窄检测)
+  - ATR(平均真实波幅 + 趋势)
+  - KDJ(随机指标 + 超买超卖)
+  - OBV(能量潮)
+  - 不依赖 pandas,纯 Python 实现
+- **回测报告导出** `src/backtest/report.py`
+  - HTML(打印友好 + 配色 + 卡片布局)
+  - JSON(机器可读)
+  - CSV(交易明细)
+  - `save_report()` 一键保存
+- **多币种回测** `src/backtest/multi_engine.py`
+  - 从 trading_pairs.json 批量回测
+  - asyncio 并发(可配 `max_concurrent` 限流)
+  - 组合汇总报告(等权加权 PnL/胜率/夏普/回撤)
+  - 各币种独立明细
+- **Web 监控面板** `src/monitor/server.py`
+  - 零依赖(仅用标准库 `http.server`)
+  - 端点:`/`(HTML 仪表盘) / `/health` / `/signals` / `/trades` / `/orders` / `/api/summary`
+  - 5 秒自动刷新
+  - 显示系统状态、配置、组件健康、池子前 10
+- **main.py 新命令**
+  - `--multi-backtest`:多币种回测
+  - `--top-n N`:回测池子前 N 币种
+  - `--report`:回测后导出报告
+  - `--monitor`:启动 Web 监控
+  - `--monitor-port 8000`:自定义端口
+- **测试** +17 个新测试,共 67 个
+  - `test_indicators_v2.py`:MACD / Bollinger / ATR / KDJ / OBV
+
+### 🐛 修复 (Fixed)
+- 修复 `macd()` 浮点对齐问题(None 占位导致减法报错)
+- 修复 `bollinger` %B 测试期望(价格上涨时 %B 必然 > 0.5)
+
+### 📊 验证结果
+- pytest: **67 passed in 5.43s**
+- multi_engine: 导入正常
+- monitor server: 真实启动,3 个端点 API 返回正确数据
+- report: 生成 HTML/JSON/CSV 各一份(测试时)
+
+---
+
 ## [0.6.0] - 2026-07-01
 
 ### ✨ 新增 (Added)

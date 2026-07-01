@@ -48,6 +48,16 @@ def parse_args():
                    help="模拟盘持续分钟(默认 60)")
     p.add_argument("--paper-equity", type=float, default=1000.0,
                    help="模拟盘初始资金(默认 1000 USDT)")
+    p.add_argument("--multi-backtest", action="store_true",
+                   help="多币种批量回测(40 个交易对)")
+    p.add_argument("--top-n", type=int, default=10,
+                   help="多币种回测时取前 N 个(避免太长)")
+    p.add_argument("--report", action="store_true",
+                   help="回测后自动导出 HTML/JSON/CSV 报告")
+    p.add_argument("--monitor", action="store_true",
+                   help="启动 Web 监控面板")
+    p.add_argument("--monitor-port", type=int, default=8000,
+                   help="监控面板端口(默认 8000)")
     return p.parse_args()
 
 
@@ -73,6 +83,44 @@ async def run_backtest(args):
     )
     result = await engine.run()
     print(result.summary())
+
+    if args.report:
+        from src.backtest.report import save_report
+        paths = save_report(
+            result,
+            metadata={
+                "symbol": symbol,
+                "interval": interval,
+                "days": args.days,
+                "strategy": args.strategy,
+            },
+        )
+        print(f"\n📁 报告已生成:")
+        for fmt, p in paths.items():
+            print(f"   {fmt}: {p}")
+
+
+async def run_multi_backtest(args):
+    """多币种回测"""
+    from src.backtest.multi_engine import multi_backtest
+    from src.config import CONFIG
+
+    print(f"\n📊 多币种回测模式")
+    print(f"   策略: {args.strategy}")
+    print(f"   周期: {args.interval or '1h'}")
+    print(f"   天数: {args.days}")
+    print(f"   杠杆: {CONFIG.trading.leverage}x")
+
+    report = await multi_backtest(
+        strategy=args.strategy,
+        symbols=None,  # 从池子取
+        interval=args.interval or "1h",
+        days=args.days,
+        initial_equity=1000.0,
+        leverage=CONFIG.trading.leverage,
+        max_concurrent=4,
+    )
+    print(report.summary())
 
 
 async def run_paper(args):
@@ -175,6 +223,25 @@ async def main():
         await run_paper(args)
     elif args.mode == "live":
         await run_live(args)
+
+    if args.multi_backtest:
+        await run_multi_backtest(args)
+
+    if args.monitor:
+        from src.monitor.server import MonitorServer
+        from src.storage.db import init_db
+        init_db()
+        server = MonitorServer(host="0.0.0.0", port=args.monitor_port)
+        server.start()
+        print(f"\n✅ 监控面板: http://localhost:{args.monitor_port}/")
+        print("   按 Ctrl+C 停止")
+        try:
+            import time
+            while True:
+                time.sleep(60)
+        except KeyboardInterrupt:
+            server.stop()
+            print("\n⏹️  停止")
 
     if args.refresh_pairs or args.update_now:
         await refresh_coin_pool()
