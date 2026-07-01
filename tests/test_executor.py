@@ -7,7 +7,8 @@ import os
 import sys
 from pathlib import Path
 
-PROJECT = Path(r"D:\quant-futures")
+# 用相对路径,适配任何机器
+PROJECT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT))
 
 from src.executor.base import ExecutionResult, ExecutorMode
