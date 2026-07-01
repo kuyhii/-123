@@ -48,6 +48,10 @@ logs/
 *.sqlite3
 !data/.gitkeep
 
+# Generated runtime files
+config/coin_pool.json
+config/coin_pool.local.json
+
 # Backtest results
 backtest_results/
 *.html

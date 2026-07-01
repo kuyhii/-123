@@ -6,8 +6,7 @@ src/strategy/base.py - 策略基类
 from abc import ABC, abstractmethod
 from typing import Optional, List
 
-from src.data.models import Kline
-from src.strategy.signal import Signal
+from src.data.models import Kline, Signal
 
 
 class Strategy(ABC):

@@ -3,10 +3,17 @@ src/strategy/examples/dual_ma.py - 双均线示例策略
 
 金叉买入,死叉卖出。可用作模板。
 """
+import sys
+from pathlib import Path
 from typing import Optional
-from src.data.models import Kline
+
+# 让 `python src/strategy/examples/dual_ma.py` 单独跑能找到 src
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+from src.data.models import Kline, Signal, Side
 from src.strategy.base import Strategy
-from src.strategy.signal import Signal, Side
 
 
 class DualMAStrategy(Strategy):

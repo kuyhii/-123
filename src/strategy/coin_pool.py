@@ -5,6 +5,10 @@ src/strategy/coin_pool.py - 交易品种池管理
 - 从 config/coin_pool.json 加载币种列表
 - 提供刷新币种池的工具(调用 binance-cli 拉最新交易量)
 - 校验币种是否在池中
+
+注意: src/strategy/ 之前有过 signal.py 但已删除, 因为
+      它会跟标准库 `signal` 同名遮蔽, 导致 subprocess 加载失败。
+      现在 Signal/Side 直接从 src.data.models 导入。
 """
 import json
 import subprocess
