@@ -42,7 +42,7 @@ logs/
 *.log
 
 # Data
-data/
+/data/
 *.db
 *.sqlite
 *.sqlite3
