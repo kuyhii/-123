@@ -35,8 +35,12 @@ def parse_args():
     p.add_argument("--days", type=int, default=90, help="回测天数")
     p.add_argument("--interval", default=None, help="K线周期(默认从 config 读)")
     p.add_argument("--profile", default=None, help="binance-cli profile 名")
-    p.add_argument("--refresh-pool", action="store_true",
-                   help="从币安拉最新交易量前 30 币种池")
+    p.add_argument("--refresh-pairs", action="store_true",
+                   help="从币安拉最新交易量前 40 交易对池")
+    p.add_argument("--update-now", action="store_true",
+                   help="立即刷新交易对池(同 --refresh-pairs)")
+    p.add_argument("--scheduler", action="store_true",
+                   help="启动后台调度器(每天 00:00 UTC 自动更新)")
     return p.parse_args()
 
 
@@ -108,12 +112,33 @@ async def run_live(args):
 
 
 async def refresh_coin_pool():
-    from src.strategy.coin_pool import refresh_pool
+    from src.strategy.trading_pairs import refresh_pairs
     from src.config import CONFIG
     print()
-    print("🔄 刷新币种池...")
-    pool = refresh_pool(top_n=30)
-    print(f"✅ {len(pool)} 个币种已更新到 {CONFIG.pool.file}")
+    print("🔄 刷新交易对池...")
+    pool = refresh_pairs(top_n=CONFIG.pool.top_n)
+    print(f"✅ {len(pool)} 个交易对已更新到 {CONFIG.pool.file}")
+
+
+async def load_or_refresh_pairs() -> list:
+    """
+    启动时调用:按配置决定是直接用现成池子还是先刷新。
+    返回交易对列表。
+    """
+    from src.strategy.trading_pairs import load_pairs, refresh_pairs
+    from src.config import CONFIG
+
+    pairs = load_pairs()
+    if not pairs or CONFIG.pool.auto_update_on_start:
+        if not pairs:
+            log_msg = "交易对池文件不存在,启动时刷新"
+        else:
+            log_msg = f"配置要求启动时自动刷新(当前 {len(pairs)} 个)"
+        from src.logger import get_logger
+        log = get_logger("main")
+        log.info(log_msg)
+        pairs = refresh_pairs()
+    return pairs
 
 
 async def main():
@@ -142,8 +167,18 @@ async def main():
     elif args.mode == "live":
         await run_live(args)
 
-    if args.refresh_pool:
+    if args.refresh_pairs or args.update_now:
         await refresh_coin_pool()
+
+    if args.scheduler:
+        from src.scheduler.pair_updater import run_forever
+        print()
+        print("⏰ 启动后台调度器(每天 00:00 UTC 更新池子)")
+        print("   按 Ctrl+C 退出")
+        try:
+            run_forever()
+        except KeyboardInterrupt:
+            print("\n⏹️  调度器退出")
 
 
 if __name__ == "__main__":

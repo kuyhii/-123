@@ -5,6 +5,38 @@
 
 ---
 
+## [0.4.0] - 2026-07-01
+
+### ✨ 新增 (Added)
+- **交易对池调度系统** — 启动时拉取,每天定时更新,自动剔除不达标
+  - `config/trading_pairs.json`: 运行时生成(40 币种 + 24h 交易量快照)
+  - `src/strategy/trading_pairs.py`: load / refresh / in_pairs / get_diff_report
+  - `src/scheduler/pair_updater.py`: 每天 00:00 UTC(北京 8:00)自动刷新
+  - 排除 `underlyingSubType=TradFi` 的股票/实物贵金属/原油合约
+  - 池子大小可通过 `TRADING_PAIRS_TOP_N` 配置(默认 40)
+  - 启动行为可通过 `PAIR_AUTO_UPDATE_ON_START` 控制
+- **main.py 新命令**
+  - `--refresh-pairs` / `--update-now`: 立即刷新池子
+  - `--scheduler`: 启动后台调度器(常驻进程,每天定时)
+- **Config 升级** `src/config.py`
+  - `CoinPoolConfig` 改名实质: `top_n=40` / `update_time_utc="00:00"` / `auto_update_on_start=True`
+
+### 📝 重命名 (Renamed)
+- `config/coin_pool.json` → `config/trading_pairs.json`(更准确)
+- `src/strategy/coin_pool.py` → `src/strategy/trading_pairs.py`
+- 参数 `COIN_POOL_FILE` → `TRADING_PAIRS_FILE`
+
+### 📊 实测结果(本次启动)
+- 拉到 529 个 USDT 加密币永续
+- 过滤后取前 40:BTC 13.5B → RAVE 65.6M USDT 24h 量
+- 排除了 XAUUSDT / XAGUSDT / SOXLUSDT / MSTRUSDT 等 TradFi
+
+### 🕐 调度行为
+- 下次执行时间 = 00:00 UTC(用户配置,可改)
+- 计算函数: `_seconds_until_next(0, 0)` → 当前 07:04 UTC 时返回 16.92 小时
+
+---
+
 ## [0.3.0] - 2026-07-01
 
 ### ✨ 新增 (Added)

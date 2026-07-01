@@ -78,7 +78,10 @@ class RiskConfig:
 @dataclass
 class CoinPoolConfig:
     """交易品种池"""
-    file: str = "config/coin_pool.json"
+    file: str = "config/trading_pairs.json"
+    top_n: int = 40                              # 池子大小
+    update_time_utc: str = "00:00"               # 每天更新时刻(UTC)
+    auto_update_on_start: bool = True            # 启动时是否自动刷新
 
     def get_path(self) -> Path:
         return PROJECT_ROOT / self.file
@@ -154,7 +157,10 @@ def load_config() -> Config:
             ],
         ),
         pool=CoinPoolConfig(
-            file=_getenv("COIN_POOL_FILE", "config/coin_pool.json"),
+            file=_getenv("TRADING_PAIRS_FILE", "config/trading_pairs.json"),
+            top_n=_getenv_int("TRADING_PAIRS_TOP_N", 40),
+            update_time_utc=_getenv("PAIR_UPDATE_TIME_UTC", "00:00"),
+            auto_update_on_start=_getenv("PAIR_AUTO_UPDATE_ON_START", "true").lower() == "true",
         ),
         system=SystemConfig(
             log_level=_getenv("LOG_LEVEL", "INFO"),

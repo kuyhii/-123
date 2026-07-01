@@ -51,6 +51,8 @@ logs/
 # Generated runtime files
 config/coin_pool.json
 config/coin_pool.local.json
+config/trading_pairs.json
+config/trading_pairs.local.json
 
 # Backtest results
 backtest_results/
