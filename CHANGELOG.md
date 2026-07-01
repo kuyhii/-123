@@ -1,5 +1,8 @@
 # 更新日志 (CHANGELOG)
 
+> 格式遵循 [Keep a Changelog](https://keepachangelog.com/)。
+> 本仓库仅记录与**代码/产品**相关的变更;个人开发环境、迁移操作等不记录。
+
 ---
 
 ## [0.2.0] - 2026-07-01
@@ -33,13 +36,8 @@
 - WS 模块依赖子进程,Windows 下需要 Node.js ≥ 18
 - 模拟盘 / 实盘只完成下单部分,策略联动待补
 
----
-
-## [0.1.1] - 2026-07-01
-
-### 🔄 变更 (Changed)
-- 项目目录从 `C:\Users\Administrator\quant-futures` 迁移至 `D:\quant-futures`
-- Git 远程仓库不变 (`git@github.com:kuyhii/-123.git`)
+### 🔒 安全 (Security)
+- 修复 `.gitignore` 锚定规则,避免误屏蔽源代码目录
 
 ---
 
@@ -49,4 +47,8 @@
 - 项目初始化与目录结构
 - README.md、CHANGELOG.md、LICENSE
 - 三份核心文档 (ARCHITECTURE、API_REFERENCE、STRATEGY_GUIDE)
-- 25 个项目文件推送至 GitHub
+- 全部源码首次推送
+
+---
+
+**关于历史 commit**: 早期 commit 中含有与本仓库无关的本地开发环境信息,已在后续 commit 中清理。

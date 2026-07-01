@@ -2,7 +2,7 @@
 
 > 基于 **Binance USDT 永续合约 (USDS-M Futures)** 的模块化量化交易系统。
 > 
-> **当前版本:v0.2.0** | 6 层架构 (L0-L5) | 24 个核心文件 | 2 个 Python 依赖
+> **当前版本:v0.2.0** | 6 层架构 (L0-L5) | 18 个核心模块 | 2 个 Python 依赖
 
 ---
 
@@ -20,7 +20,7 @@
 | 模拟盘 | 🔄 基础完成 | `python src/main.py --mode paper` |
 | 实盘 | ⚠️ 需 CONFIRM | `python src/main.py --mode live` |
 
-**最近验证**:17/17 ad-hoc tests passed (py_compile + import + 业务逻辑)
+**已通过基础验证**:模块语法、import、业务逻辑烟雾测试
 
 ---
 
