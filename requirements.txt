@@ -1,19 +1,7 @@
-"""
-requirements.txt - Python 依赖
-
-核心依赖(必装):
-- rich:    彩色日志,终端输出美观
-- python-dotenv: .env 文件加载
-
-可选依赖(策略/分析需要时再装):
-- pandas / numpy:  数据处理(目前指标用手写循环,可不用)
-- aiohttp:         备用 HTTP 客户端(目前走 binance-cli 子进程)
-"""
-# 核心
 rich>=13.0.0
 python-dotenv>=1.0.0
 
-# 以下为可选,先注释掉,需要时取消
+# 可选依赖(策略/分析需要时再装)
 # pandas>=2.0.0
 # numpy>=1.24.0
 # aiohttp>=3.9.0

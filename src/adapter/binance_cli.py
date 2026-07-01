@@ -10,8 +10,14 @@ import asyncio
 import json
 import subprocess
 import shutil
-from typing import Any, Optional
+import sys
 from pathlib import Path
+from typing import Any, Optional
+
+# 让 `python src/adapter/binance_cli.py` 直接跑时能找到 src 包
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
 from src.adapter.errors import (
     BinanceCLIError, classify_error, BinanceRateLimitError, BinanceNetworkError,

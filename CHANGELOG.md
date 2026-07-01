@@ -5,6 +5,21 @@
 
 ---
 
+## [0.2.1] - 2026-07-01
+
+### 🐛 修复 (Fixed)
+- `requirements.txt` 移除顶部 docstring(`uv pip` 严格解析会失败)
+- `src/adapter/binance_cli.py` 顶部加入 `sys.path` 注入,支持 `python src/<module>.py` 直接运行
+- `src/backtest/engine.py` 修复 `_fetch_history` 里 `limit` 关键字参数重复问题
+- `src/main.py` 修复回测输出 `print(result.summary)` 未调用方法
+
+### ✅ 验证 (Verified)
+- 装好真实环境(`node 24` + `binance-cli 1.3.0` + Python `rich`/`dotenv`)
+- demo.py 真实跑通(BTC 当前价 $58,605)
+- 回测真实跑通(7 天 BTC,1500 根 K 线,97 次交易)
+
+---
+
 ## [0.2.0] - 2026-07-01
 
 ### ✨ 新增 (Added)

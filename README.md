@@ -2,7 +2,7 @@
 
 > 基于 **Binance USDT 永续合约 (USDS-M Futures)** 的模块化量化交易系统。
 > 
-> **当前版本:v0.2.0** | 6 层架构 (L0-L5) | 18 个核心模块 | 2 个 Python 依赖
+> **当前版本:v0.2.1** | 6 层架构 (L0-L5) | 18 个核心模块 | 2 个 Python 依赖
 
 ---
 
@@ -21,6 +21,8 @@
 | 实盘 | ⚠️ 需 CONFIRM | `python src/main.py --mode live` |
 
 **已通过基础验证**:模块语法、import、业务逻辑烟雾测试
+
+**已真实跑通**:`python src/demo.py` 拉到 BTC 实时行情($58,605 / 24h 跌 1.58%);`python src/main.py --mode backtest` 跑 7 天真实回测
 
 ---
 

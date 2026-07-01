@@ -57,7 +57,7 @@ async def run_backtest(args):
         days=args.days, initial_equity=10000, leverage=CONFIG.trading.default_leverage,
     )
     result = await engine.run()
-    print(result.summary)
+    print(result.summary())
 
 
 async def run_paper(args):

@@ -83,12 +83,10 @@ class BacktestEngine:
         pages = (total // 1500) + 1
 
         for _ in range(pages):
-            params = {"limit": 1500}
+            kwargs = {"limit": 1500}
             if end_time:
-                params["end_time"] = end_time
-            raw = await FuturesUSDS.kline(
-                self.symbol, self.interval, limit=1500, **params
-            )
+                kwargs["end_time"] = end_time
+            raw = await FuturesUSDS.kline(self.symbol, self.interval, **kwargs)
             if not raw:
                 break
             page = [Kline.from_binance(k, self.symbol) for k in raw]
