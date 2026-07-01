@@ -1,0 +1,29 @@
+# docker-compose.yml
+# 启动:  docker compose up -d
+# 日志:  docker compose logs -f
+# 停止:  docker compose down
+services:
+  quant-futures:
+    build: .
+    container_name: quant-futures
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TZ=UTC
+    volumes:
+      # 持久化数据
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config
+    ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

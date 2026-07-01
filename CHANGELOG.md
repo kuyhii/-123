@@ -5,6 +5,54 @@
 
 ---
 
+## [0.6.0] - 2026-07-01
+
+### ✨ 新增 (Added)
+- **通知系统** `src/notify/notifier.py`
+  - 多通道:控制台 + Telegram + 文件日志
+  - 5 种严重级别:INFO / SIGNAL / TRADE / WARN / ERROR
+  - 同事件 1 分钟内限流(防刷屏)
+  - Telegram 配置: `.env` 加 `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID`
+- **断线重连** `src/utils/reconnect.py`
+  - 装饰器模式:`@async_reconnecting_stream` 或 `@async_reconnecting_stream(max_attempts=5)`
+  - 指数退避(1s → 2s → 4s → 8s,上限 60s)+ 抖动
+  - 致命异常(fatal_exceptions)立即停止
+  - async generator 资源自动关闭(`aclose`)
+- **健康检查** `src/utils/health.py`
+  - 单例 + 线程安全
+  - 组件级状态:HEALTHY / DEGRADED / UNHEALTHY
+  - 自动检测"长期无成功"为 stale
+  - 整体健康判定 + 快照导出
+- **Docker 部署** `Dockerfile` + `docker-compose.yml` + `.dockerignore`
+  - Python 3.11 + Node 20 基础镜像
+  - 一条 `docker compose up -d` 启动
+  - 资源限制(1 CPU / 512MB)+ 日志轮转(10MB × 3)
+  - 挂载 `data/` `logs/` `config/` 持久化
+  - Dockerfile 含 `HEALTHCHECK` 指令
+- **集成**:`paper_engine.py` 集成通知 + 健康检查
+  - 启动 / 异常 / 中断时发通知
+  - 每收到一根 K 线记录一次成功
+- **测试套件** +15 个新测试,共 50 个
+  - `test_health.py` 7 个场景
+  - `test_notifier.py` 6 个场景
+  - `test_reconnect.py` 4 个场景(含死循环回归测试)
+
+### 🐛 修复 (Fixed)
+- 修复 `async_reconnecting_stream` 装饰器签名(支持无参调用)
+- 修复 `async for` 正常完成时死循环(用 `try` 内的 `else` 而非 `except StopAsyncIteration`)
+- 修复 `reconnect.py` `factory=None` 时变 partial,允许无参调用
+- 修复 3 个新模块缺 `sys.path` 注入(不能 `python xxx.py` 直接跑)
+- 修复 `notifier.py` 顶部 docstring 重复导致 IndentationError
+
+### 📊 验证结果
+- pytest: **50 passed in 5.29s**
+- notifier: 单独跑 + 集成到 paper_engine
+- health: 3 组件状态正确显示
+- reconnect: 4 个测试场景(断/正常/限重试/致命)
+- docker-compose: YAML 语法正确
+
+---
+
 ## [0.5.0] - 2026-07-01
 
 ### ✨ 新增 (Added)

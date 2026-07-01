@@ -40,6 +40,8 @@ from src.account.account import Account
 from src.storage.db import (
     init_db, KlinesRepository, SignalsRepository, OrdersRepository, TradesRepository,
 )
+from src.notify.notifier import DEFAULT_NOTIFIER as notifier
+from src.utils.health import HealthMonitor
 
 log = get_logger("paper")
 console = Console()
@@ -123,6 +125,7 @@ class PaperEngine:
     def _handle_signal(self, sig, current_price: float):
         """处理策略信号:风控 → 仓位计算 → 模拟成交"""
         log.info(f"📡 信号: {sig.side.value} {sig.symbol} qty={sig.quantity} ({sig.reason})")
+        notifier.signal(sig.symbol, sig.side.value, sig.reason)
 
         # 风控检查
         check = self.risk.check_signal(sig, equity=self.state.total_equity())
@@ -217,9 +220,13 @@ class PaperEngine:
     async def run(self, duration_minutes: int = 60):
         """主循环:订阅 K线 + 显示面板"""
         self.strategy = create_strategy(self.strategy_name, quantity=0.001)
+        # 注册健康检查
+        health = HealthMonitor.get()
+        health.register("paper_engine")
+        health.register("kline_ws")
+
         log.info(f"🚀 启动模拟盘: {self.strategy_name} on {self.symbol}")
-        log.info(f"   初始资金: ${self.equity}, 杠杆: {self.leverage}x")
-        log.info(f"   持续时间: {duration_minutes} 分钟")
+        notifier.info("模拟盘启动", f"{self.strategy_name} on {self.symbol}, 资金 ${self.equity}")
 
         stream = KlineStream(self.symbol, "1m")
         end_time = time.time() + duration_minutes * 60
@@ -227,15 +234,24 @@ class PaperEngine:
         with Live(self._make_dashboard(), refresh_per_second=2, console=console) as live:
             try:
                 async for kline in stream.subscribe(on_kline=self._on_kline):
+                    health.record_success("kline_ws")
+                    health.record_success("paper_engine")
                     if time.time() > end_time:
                         log.info("⏱️  到时,结束")
                         break
                     live.update(self._make_dashboard())
             except KeyboardInterrupt:
                 log.info("⏹️  用户中断")
+                notifier.warn("模拟盘中断", "用户 Ctrl+C")
             except FileNotFoundError as e:
                 log.error(f"❌ {e}")
+                health.record_error("kline_ws", str(e))
+                notifier.error("binance-cli 缺失", str(e))
                 return
+            except Exception as e:
+                log.error(f"❌ 异常: {e}")
+                health.record_error("paper_engine", str(e))
+                notifier.error("模拟盘异常", str(e))
 
         # 收尾:平掉所有持仓
         if self.symbol in self.state.positions:
