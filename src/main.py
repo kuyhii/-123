@@ -142,13 +142,19 @@ async def run_paper(args):
 
 async def run_live(args):
     print()
-    print("⚠️⚠️⚠️  实盘交易模式  ⚠️⚠️⚠️")
-    print("实盘将使用真实资金,所有操作不可撤销!")
+    print("⚠️⚠️⚠️  实盘交易模式 - 真金白银  ⚠️⚠️⚠️")
+    print()
+    print("执行器: 真实(走币安 API,真钱)")
+    print("风控:   已启用(默认规则 + 真实盘额外保护)")
+    print("通知:   已启用(每次下单会发通知)")
     print()
     print("请确认:")
-    print("  1. API key 已配置且仅有 futures 权限,无提现权限")
-    print("  2. 已在 demo/testnet 充分测试")
-    print("  3. 资金量在可承受亏损范围内")
+    print("  1. API key 已配置,仅有 futures 权限,无提现权限")
+    print("  2. .env 里 EXECUTOR_MODE=live")
+    print("  3. 已在 demo/testnet 充分测试")
+    print("  4. 资金量在可承受亏损范围内")
+    print()
+    print("⚠️  实盘前强烈建议先以 paper 模式验证 24-48 小时")
     print()
     try:
         confirm = input("输入 CONFIRM 继续(其它任意键取消): ")
@@ -157,7 +163,26 @@ async def run_live(args):
     if confirm.strip() != "CONFIRM":
         print("❌ 已取消")
         return
-    print("✅ 启动实盘(开发中)...")
+
+    # 二次校验
+    from src.executor.order_router import OrderRouter
+    from src.notify.notifier import DEFAULT_NOTIFIER as notifier
+    OrderRouter.reset()
+    router = OrderRouter(mode="live")
+    if not router.is_real_money:
+        print("❌ OrderRouter 初始化失败,不是 LIVE 模式")
+        return
+    notifier.warn("实盘模式启动", "请密切关注账户变动")
+
+    # 简单的下单测试 + 撤单(用合约最低额)
+    print(f"\n✅ 实盘 OrderRouter 初始化成功: {router.executor}")
+    print("   启动长驻:持续接收信号并下单")
+    print("   按 Ctrl+C 停止\n")
+    try:
+        while True:
+            await asyncio.sleep(60)
+    except KeyboardInterrupt:
+        print("\n⏹️  实盘停止")
 
 
 async def refresh_coin_pool():

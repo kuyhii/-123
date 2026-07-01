@@ -105,6 +105,7 @@ class SystemConfig:
     log_level: str = "INFO"
     log_dir: str = "./logs"
     log_to_file: bool = True
+    executor_mode: str = "paper"            # paper | live(默认 paper,最安全)
 
 
 @dataclass
@@ -166,6 +167,7 @@ def load_config() -> Config:
             log_level=_getenv("LOG_LEVEL", "INFO"),
             log_dir=_getenv("LOG_DIR", "./logs"),
             log_to_file=_getenv("LOG_TO_FILE", "true").lower() == "true",
+            executor_mode=_getenv("EXECUTOR_MODE", "paper").lower(),
         ),
     )
 

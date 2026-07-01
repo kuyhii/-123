@@ -1,125 +1,157 @@
 """
-src/executor/order_router.py - L3 执行层
+src/executor/order_router.py - 订单路由(统一接口)
 
-下单、撤单、改单,所有策略信号最终通过这里下单。
+向后兼容旧版 API,内部根据 mode 自动选 LiveExecutor 或 PaperExecutor。
 """
-import asyncio
-from typing import Optional, List
+import sys
+from pathlib import Path
+from typing import Optional
 
-from src.adapter.binance_cli import FuturesUSDS
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+from src.executor.base import OrderExecutor, ExecutionResult
+from src.executor.paper_executor import PaperExecutor
+from src.executor.live_executor import LiveExecutor
 from src.data.models import Side, OrderType
+from src.config import CONFIG
 from src.logger import get_logger
 
-log = get_logger("executor")
+log = get_logger("order_router")
 
 
 class OrderRouter:
-    """订单路由"""
+    """
+    订单路由器(单例)
 
-    def __init__(self, profile: Optional[str] = None, test_mode: bool = False):
-        self.profile = profile
-        self.test_mode = test_mode  # True: 走 test-order,真单
+    用法:
+        router = OrderRouter(mode="paper")  # 或 "live"
+        result = await router.market("BTCUSDT", Side.BUY, 0.001)
+    """
 
-    def _warn_live(self):
-        if not self.test_mode:
-            log.warning("⚠️  实盘下单模式")
+    _instances: dict = {}
 
-    # ==================== 下单 ====================
+    def __new__(cls, mode: str = None, profile: str = None, **kwargs):
+        mode = mode or CONFIG.executor_mode
+        if mode in cls._instances:
+            return cls._instances[mode]
+        instance = super().__new__(cls)
+        instance._initialized = False
+        cls._instances[mode] = instance
+        return instance
+
+    def __init__(self, mode: str = None, profile: str = None, **kwargs):
+        if self._initialized:
+            return
+        mode = mode or CONFIG.executor_mode
+        self.mode = mode
+        self.profile = profile or CONFIG.binance.profile
+        self._kwargs = kwargs
+        self._make_executor(mode)
+        self._initialized = True
+
+    def _make_executor(self, mode: str):
+        if mode == "live":
+            self.executor: OrderExecutor = LiveExecutor()
+            log.warning("=" * 50)
+            log.warning("⚠️  OrderRouter 使用 LIVE 执行器 - 真金白银")
+            log.warning(f"   env={CONFIG.binance.env}, profile={self.profile}")
+            log.warning("=" * 50)
+        elif mode == "paper":
+            initial = float(self._kwargs.get("initial_balance", 10000.0))
+            self.executor: OrderExecutor = PaperExecutor(initial_balance=initial)
+            log.info("🎮 OrderRouter 使用 PAPER 执行器 - 模拟交易")
+        else:
+            raise ValueError(f"未知 mode: {mode!r}, 必须是 'live' 或 'paper'")
+
+    @classmethod
+    def reset(cls):
+        """重置单例(主要用于测试)"""
+        cls._instances.clear()
+
+    @property
+    def is_real_money(self) -> bool:
+        return self.executor.is_real_money
+
+    def pre_trade_check(self, signal, account_equity: float) -> tuple:
+        return self.executor.pre_trade_check(signal, account_equity)
+
+    async def _get_current_price(self, symbol: str) -> Optional[float]:
+        """获取当前市价(优先用真数据,失败则 None)"""
+        try:
+            from src.adapter.binance_cli import FuturesUSDS
+            t = await FuturesUSDS.ticker_24h(symbol)
+            return float(t.get("lastPrice", 0)) or None
+        except Exception:
+            return None
 
     async def market(
         self, symbol: str, side: Side, quantity: float,
         reduce_only: bool = False,
-    ) -> dict:
-        self._warn_live()
-        log.info(f"[MARKET] {side.value} {symbol} qty={quantity} reduce={reduce_only}")
-        return await FuturesUSDS.new_order(
-            symbol=symbol, side=side.value, type_=OrderType.MARKET.value,
-            quantity=quantity, reduce_only=reduce_only, test=self.test_mode,
+    ) -> ExecutionResult:
+        # 自动获取市价(模拟盘没价格不能成交)
+        price = await self._get_current_price(symbol)
+        return await self.executor.place_order(
+            symbol, side, OrderType.MARKET, quantity,
+            price=price, reduce_only=reduce_only,
         )
 
     async def limit(
         self, symbol: str, side: Side, quantity: float, price: float,
         time_in_force: str = "GTC", reduce_only: bool = False,
-    ) -> dict:
-        self._warn_live()
-        log.info(f"[LIMIT ] {side.value} {symbol} qty={quantity} @ {price}")
-        return await FuturesUSDS.new_order(
-            symbol=symbol, side=side.value, type_=OrderType.LIMIT.value,
-            quantity=quantity, price=price,
-            time_in_force=time_in_force, reduce_only=reduce_only,
-            test=self.test_mode,
+    ) -> ExecutionResult:
+        return await self.executor.place_order(
+            symbol, side, OrderType.LIMIT, quantity,
+            price=price, reduce_only=reduce_only, time_in_force=time_in_force,
         )
 
     async def stop_market(
         self, symbol: str, side: Side, quantity: float, stop_price: float,
         reduce_only: bool = True,
-    ) -> dict:
-        self._warn_live()
-        log.info(f"[STOP  ] {side.value} {symbol} qty={quantity} stop={stop_price}")
-        return await FuturesUSDS.new_order(
-            symbol=symbol, side=side.value, type_="STOP_MARKET",
-            quantity=quantity, stop_price=stop_price,
-            reduce_only=reduce_only, test=self.test_mode,
+    ) -> ExecutionResult:
+        return await self.executor.place_order(
+            symbol, side, OrderType.STOP_MARKET, quantity,
+            price=None, reduce_only=reduce_only, stop_price=stop_price,
         )
 
-    # ==================== 撤单 ====================
+    async def cancel_order(self, symbol: str, order_id: str) -> ExecutionResult:
+        return await self.executor.cancel_order(symbol, order_id)
 
-    async def cancel(self, symbol: str, order_id: int) -> dict:
-        log.info(f"撤单 {symbol} #{order_id}")
-        return await FuturesUSDS.cancel_order(symbol, order_id=order_id)
+    async def cancel_all(self, symbol: str) -> ExecutionResult:
+        return await self.executor.cancel_all(symbol)
 
-    async def cancel_all(self, symbol: str) -> dict:
-        log.info(f"全撤 {symbol} 所有挂单")
-        return await FuturesUSDS.cancel_all(symbol)
+    async def get_balance(self) -> dict:
+        return await self.executor.get_balance()
 
-    # ==================== 算法单(TP/SL)===================
+    async def get_position(self, symbol: str):
+        return await self.executor.get_position(symbol)
 
-    async def take_profit(
-        self, symbol: str, side: Side, quantity: float, tp_price: float,
-        reduce_only: bool = True,
-    ) -> dict:
-        """限价止盈"""
-        return await FuturesUSDS.new_order(
-            symbol=symbol, side=side.value, type="TAKE_PROFIT",
-            quantity=quantity, price=tp_price, stop_price=tp_price,
-            reduce_only=reduce_only, test=self.test_mode,
-        )
-
-    async def bracket(
-        self, symbol: str, entry_side: Side, quantity: float,
-        sl_price: float, tp_price: Optional[float] = None,
-    ) -> List[dict]:
-        """
-        下止损单(可选同时下止盈单)
-        返回 [止损单结果, 止盈单结果或 None]
-        """
-        # 止损方向:与开仓相反
-        sl_side = Side.SELL if entry_side == Side.BUY else Side.BUY
-        orders = []
-
-        orders.append(await self.stop_market(
-            symbol, sl_side, quantity, sl_price, reduce_only=True
-        ))
-        if tp_price:
-            orders.append(await self.take_profit(
-                symbol, sl_side, quantity, tp_price, reduce_only=True
-            ))
-        return orders
+    async def get_open_orders(self, symbol: str = None):
+        return await self.executor.get_open_orders(symbol)
 
 
-# ==================== 单独运行测试 ====================
+# ==================== 单独测试 ====================
 if __name__ == "__main__":
-    print("🔍 L3 执行层测试(默认 test_mode,不会真实下单)\n")
+    import asyncio
 
     async def test():
-        router = OrderRouter(test_mode=True)
-        try:
-            print("测试限价买单(测试单)...")
-            r = await router.limit(
-                "BTCUSDT", Side.BUY, quantity=0.001, price=30000
-            )
-            print(f"   ✅ {r}\n")
-        except Exception as e:
-            print(f"   ❌ {e}\n")
+        # 测试 paper 模式
+        OrderRouter.reset()
+        r = OrderRouter(mode="paper", initial_balance=10000)
+        print(f"Router: {r.executor}")
+        assert r.is_real_money is False
+
+        bal = await r.get_balance()
+        print(f"初始余额: ${bal['available']:.2f}")
+
+        result = await r.market("BTCUSDT", Side.BUY, 0.01, )
+        print(f"下单: {result}")
+        assert result.success
+
+        bal2 = await r.get_balance()
+        print(f"下单后余额: ${bal2['available']:.2f}")
+
+        print("\n🎉 OrderRouter(PAPER) 跑通")
 
     asyncio.run(test())

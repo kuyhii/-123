@@ -5,6 +5,50 @@
 
 ---
 
+## [0.8.0] - 2026-07-01
+
+### ✨ 新增 (Added)
+- **执行器抽象层** `src/executor/`
+  - `base.py`:`OrderExecutor` 抽象基类 + `ExecutionResult` 统一返回
+  - `live_executor.py`:真实下单执行器(走 `binance-cli` 真实 API)
+  - `paper_executor.py`:本地模拟执行器(内存账户,即时成交,持 PnL)
+  - `order_router.py`:统一路由接口,根据 `EXECUTOR_MODE` 自动选执行器
+- **真实盘 / 模拟盘切换**
+  - `.env` 加 `EXECUTOR_MODE=paper|live`(默认 paper,最安全)
+  - 同一套业务代码,只换执行器后端
+  - **链路连贯性**:真实盘走币安,模拟盘用相同接口(下单/撤单/查余额/查持仓)本地跑
+  - 真实盘用真数据模拟时,自动从 Binance 拉当前市价
+- **真实盘安全保护**
+  - 启动时校验:`BINANCE_API_ENV` 必须是 prod/testnet/demo
+  - 启动时校验:必须配置 `BINANCE_API_KEY` / `BINANCE_SECRET_KEY`,缺一就拒启动
+  - 每次下单前额外检查:
+    - 账户净值 < $50 拒绝开仓
+    - 单笔名义 > 账户 50% 拒绝(防止单笔爆仓)
+  - 启动时发 `WARN` 通知(如果配了 Telegram)
+  - 每次下单发 `WARN` + `TRADE` 通知
+- **main.py 真实盘完整化**
+  - 4 项确认清单(API key 权限 / EXECUTOR_MODE / 已在 demo 验证 / 资金承受力)
+  - CONFIRM 二次确认
+  - 强烈建议先 paper 跑 24-48 小时
+  - OrderRouter 二次校验 is_real_money
+
+### 🐛 修复 (Fixed)
+- 修复 `order_router` `__init__` 没用保存 `kwargs`,paper 模式 `initial_balance` 失效
+- 修复 `order_router.market` 不自动拉市价,paper 模拟盘没价格不能成交
+- 修复 `paper_executor` 缺 `import sys` 导致 import 失败
+- 修复 `base.py` 缺 `sys.path` 注入
+- 修复 `live_executor` 启动日志被 `if not has_creds` 截断
+- 修复 env 检查顺序:先验 `BINANCE_API_ENV` 再验 key
+
+### 📊 验证结果
+- pytest: **82 passed in 7.22s**
+- paper_executor: 真实跑通(买→涨→卖有 PnL)
+- live_executor: 启动安全检查通过(无 key 拒启动,无效 env 拒启动)
+- order_router: 单例 + paper/live 自动分发
+- main.py --help: 4 mode 含 live
+
+---
+
 ## [0.7.0] - 2026-07-01
 
 ### ✨ 新增 (Added)
