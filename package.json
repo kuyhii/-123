@@ -1,0 +1,20 @@
+{
+  "name": "quant-futures",
+  "version": "0.1.0",
+  "description": "Quantitative Futures Trading System based on Binance USDT Perpetual",
+  "private": true,
+  "scripts": {
+    "profile:create": "binance-cli profile create",
+    "profile:list": "binance-cli profile list",
+    "profile:select": "binance-cli profile select",
+    "test:connectivity": "binance-cli futures-usds test-connectivity"
+  },
+  "dependencies": {
+    "@binance/binance-cli": "^1.2.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "author": "kuyhii",
+  "license": "MIT"
+}

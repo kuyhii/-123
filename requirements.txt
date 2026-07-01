@@ -1,0 +1,36 @@
+# Core
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Async / Concurrency
+asyncio-throttle>=1.0.2
+aiohttp>=3.9.0
+
+# WebSocket
+websockets>=12.0
+python-binance>=1.0.19  # 作为参考/fallback
+
+# Technical Analysis
+pandas-ta>=0.3.14b1
+# TA-Lib  # 备选,需要 C 编译
+
+# Database
+sqlalchemy>=2.0.0
+# asyncpg>=0.29.0  # 如果用 PostgreSQL
+
+# Logging & Monitoring
+loguru>=0.7.0
+
+# CLI
+typer>=0.9.0
+rich>=13.0.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.11.0

@@ -1,0 +1,36 @@
+MIT License
+
+Copyright (c) 2026 kuyhii
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## ⚠️ 风险免责声明
+
+本软件仅供学习和研究使用。加密货币合约交易具有**极高风险**,可能造成全部本金损失。
+
+使用本软件进行的任何实盘交易,所有盈亏由使用者本人承担。
+开发者不对任何因使用本软件导致的损失负责。
+
+**使用前请务必:**
+1. 充分了解合约交易的杠杆机制和强平规则
+2. 在 testnet / demo 环境充分测试
+3. 使用闲置资金,只用能承受损失的金额
+4. 严格遵守所在地区的法律法规
