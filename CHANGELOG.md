@@ -5,6 +5,37 @@
 
 ---
 
+## [0.3.0] - 2026-07-01
+
+### ✨ 新增 (Added)
+- **交易品种池** `config/coin_pool.json` + `src/strategy/coin_pool.py`
+  - 默认按 USDT 永续 24h 交易量排序取前 30
+  - 排除 `underlyingSubType=TradFi` 的股票/贵金属/原油合约
+  - `--refresh-pool` 命令从币安拉最新池
+  - 单文件入口:`python src/strategy/coin_pool.py --show` / `--refresh`
+- **仓位大小计算** `src/executor/position_sizer.py`
+  - 公式:每单保证金 = 账户净值 × 4%;名义 = 保证金 × 杠杆
+  - 单独可跑 `python src/executor/position_sizer.py` 看 4 种场景
+- **配置系统升级** `src/config.py`
+  - 新增 `TradingConfig`: `leverage=20` / `kline_intervals=[3m,5m]` / `order_pct_of_margin=4.0`
+  - 新增 `CoinPoolConfig`: 池文件路径
+  - 新增 `kline_intervals` 多周期支持(策略可同时用 3m + 5m)
+- **.env.example** 更新参数注释
+- **main.py** 加 `--refresh-pool` 命令 + `--interval` 默认从 config 读
+
+### 📊 默认策略参数(v0.3.0 起)
+- 杠杆:**20x**(全策略统一)
+- K线周期:**3m + 5m**(多时间框架)
+- 交易品种:**USDT 永续 24h 交易量前 30**(已过滤 TradFi)
+- 下单金额:**账户净值 × 4% 保证金**
+
+### 📈 实测仓位计算(用户给 100 USDT 账户)
+- BTC $58,000 → 0.00138 BTC (4 USDT 保证金, 80 USDT 名义)
+- ETH $1,500 → 0.533 ETH
+- SOL $74 → 108 SOL
+
+---
+
 ## [0.2.1] - 2026-07-01
 
 ### 🐛 修复 (Fixed)

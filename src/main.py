@@ -6,6 +6,7 @@ src/main.py - 主入口
 - backtest:  历史回测
 - paper:     模拟盘
 - live:      实盘(危险)
+- --refresh-pool:  从币安拉最新交易量前 30 币种池
 """
 import argparse
 import asyncio
@@ -27,13 +28,15 @@ def parse_args():
   demo      - 验证环境 + 拉行情(默认)
   backtest  - 历史数据回测
   paper     - 模拟盘(实时行情,不下单)
-  live      - 实盘(危险!)"""
+  live      - 实盘(危险!)""",
     )
     p.add_argument("--symbol", default=None, help="交易对(默认从 config 读)")
     p.add_argument("--strategy", default="dual_ma", help="策略名")
     p.add_argument("--days", type=int, default=90, help="回测天数")
-    p.add_argument("--interval", default="1h", help="K线周期")
+    p.add_argument("--interval", default=None, help="K线周期(默认从 config 读)")
     p.add_argument("--profile", default=None, help="binance-cli profile 名")
+    p.add_argument("--refresh-pool", action="store_true",
+                   help="从币安拉最新交易量前 30 币种池")
     return p.parse_args()
 
 
@@ -48,26 +51,30 @@ async def run_backtest(args):
     from src.config import CONFIG
 
     symbol = args.symbol or CONFIG.trading.default_symbol
-    print(f"\n📈 回测模式 - {symbol} {args.interval} {args.days} 天\n")
+    interval = args.interval or "1h"
+    print(f"\n📈 回测模式 - {symbol} {interval} {args.days} 天\n")
     print(f"策略: {args.strategy}")
 
     strategy = DualMAStrategy()  # TODO: 策略工厂
     engine = BacktestEngine(
-        strategy=strategy, symbol=symbol, interval=args.interval,
-        days=args.days, initial_equity=10000, leverage=CONFIG.trading.default_leverage,
+        strategy=strategy, symbol=symbol, interval=interval,
+        days=args.days, initial_equity=10000, leverage=CONFIG.trading.leverage,
     )
     result = await engine.run()
     print(result.summary())
 
 
 async def run_paper(args):
+    from src.config import CONFIG
     print("📝 模拟盘模式")
     print("⚠️  模拟盘功能开发中 - 暂时只能演示行情流")
     print("   完成后:策略在真实行情上跑,但所有 OrderRouter 调用 test_mode=True")
 
     # 临时演示:订阅 K 线流 5 根就退出
     from src.data.ws_kline import KlineStream
-    stream = KlineStream(args.symbol or "BTCUSDT", args.interval)
+    symbol = args.symbol or CONFIG.trading.default_symbol
+    interval = args.interval or "1m"
+    stream = KlineStream(symbol, interval)
     count = 0
     try:
         async for k in stream.subscribe():
@@ -100,6 +107,15 @@ async def run_live(args):
     print("✅ 启动实盘(开发中)...")
 
 
+async def refresh_coin_pool():
+    from src.strategy.coin_pool import refresh_pool
+    from src.config import CONFIG
+    print()
+    print("🔄 刷新币种池...")
+    pool = refresh_pool(top_n=30)
+    print(f"✅ {len(pool)} 个币种已更新到 {CONFIG.pool.file}")
+
+
 async def main():
     args = parse_args()
 
@@ -108,7 +124,7 @@ async def main():
     log = get_logger("main")
 
     print("=" * 60)
-    print("  量化合约交易系统 v0.2.0")
+    print(f"  量化合约交易系统 v0.3.0")
     print(f"  Mode:     {args.mode}")
     print(f"  Symbol:   {args.symbol or CONFIG.trading.default_symbol}")
     print(f"  Strategy: {args.strategy}")
@@ -125,6 +141,9 @@ async def main():
         await run_paper(args)
     elif args.mode == "live":
         await run_live(args)
+
+    if args.refresh_pool:
+        await refresh_coin_pool()
 
 
 if __name__ == "__main__":
